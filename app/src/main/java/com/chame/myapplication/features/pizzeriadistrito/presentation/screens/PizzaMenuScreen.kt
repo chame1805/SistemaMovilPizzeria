@@ -1,14 +1,13 @@
 package com.chame.myapplication.features.pizzeriadistrito.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chame.myapplication.features.pizzeriadistrito.presentation.components.PizzaCard
@@ -28,20 +29,38 @@ import com.chame.myapplication.features.pizzeriadistrito.presentation.viewModel.
 fun PizzaMenuScreen(
     viewModelFactory: PizzaViewModelFactory,
     onPizzaClick: (String, Double) -> Unit,
-    onHistoryClick: () -> Unit // <--- ESTA LÍNEA ES LA QUE TE FALTA AHORITA
+    onHistoryClick: () -> Unit
 ){
     val viewModel : PizzaViewModel = viewModel(factory = viewModelFactory)
     val menuState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Definimos un color "naranja pizza" rápido por si no tienes tema definido
+    val pizzaPrimaryColor = Color(0xFFE65100)
+    val backgroundColor = Color(0xFFF5F5F5) // Gris muy clarito para el fondo
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        containerColor = backgroundColor, // Fondo general
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Menu Pizzeria", fontWeight = FontWeight.ExtraBold) },
+                title = {
+                    Text(
+                        "Distrito Pizza",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = pizzaPrimaryColor,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                ),
                 actions = {
-                    // Botón del Historial (Arriba a la derecha)
                     IconButton(onClick = onHistoryClick) {
-                        Icon(Icons.Default.DateRange, contentDescription = "Historial")
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Historial de Compras"
+                        )
                     }
                 }
             )
@@ -54,28 +73,70 @@ fun PizzaMenuScreen(
         ) {
             when {
                 menuState.isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                menuState.error != null -> {
-                    Text(
-                        text = menuState.error ?: "Error",
+                    Column(
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color.Red
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(color = pizzaPrimaryColor)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Horneando el menú...", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
+
+                menuState.error != null -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Error",
+                            tint = Color.Red,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Ups! Algo salió mal.",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = menuState.error ?: "Error desconocido",
+                            textAlign = TextAlign.Center,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(8.dp)
+                        contentPadding = PaddingValues(16.dp), // Más espacio en los bordes
+                        verticalArrangement = Arrangement.spacedBy(16.dp) // Espacio entre tarjetas
                     ) {
+                        // Un título bonito antes de la lista
+                        item {
+                            Text(
+                                text = "Nuestras Especialidades",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.DarkGray,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+
                         items(menuState.pizzas) { pizzaItem ->
                             PizzaCard(
                                 name = pizzaItem.name,
                                 price = pizzaItem.price,
                                 imageUrl = pizzaItem.imagenUrl,
-                                modifier = Modifier.clickable {
-                                    onPizzaClick(pizzaItem.name, pizzaItem.price)
-                                }
+                                modifier = Modifier
+                                    .fillMaxWidth() // Que ocupe el ancho disponible
+                                    .clickable {
+                                        onPizzaClick(pizzaItem.name, pizzaItem.price)
+                                    }
                             )
                         }
                     }
